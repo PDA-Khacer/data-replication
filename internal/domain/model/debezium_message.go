@@ -1,6 +1,7 @@
 package model
 
 import (
+	"github.com/samber/lo"
 	"strings"
 )
 
@@ -24,7 +25,7 @@ type Schema struct {
 }
 
 type Payload[T any] struct {
-	Id          *string       `json:"id"`
+	Id          any           `json:"id"`
 	Before      *map[string]T `json:"before"`
 	After       *map[string]T `json:"after"`
 	Source      Source        `json:"source"`
@@ -36,9 +37,9 @@ type Payload[T any] struct {
 }
 
 type Field struct {
-	Name   string `json:"name"`
-	Type   string `json:"type"`
-	Option bool   `json:"option"`
+	Name   *string `json:"name"`
+	Type   string  `json:"type"`
+	Option bool    `json:"option"`
 	// Field update data
 	Field  string  `json:"field"`
 	Fields []Field `json:"fields"`
@@ -69,20 +70,29 @@ type Source struct {
 func (m *DebeziumMessage[T]) GetSchemeAfterTable() (after SchemaTable) {
 	dk := m.Key
 	// get private key
+	after.PrimaryKey = lo.Map(dk.Schema.Fields, func(item Field, _ int) string {
+		return item.Field
+	})
 
 	dv := m.Value
 	for _, field := range dv.Schema.Fields {
 		// get only after field
-		if field.Field == "after" {
+		if field.Field == "after" && field.Name != nil {
 			// get schema & table form name with format: <Prefix>.<Schema>.<Table>.Value
-			temp := strings.Split(field.Name, ".")
+			temp := strings.Split(*field.Name, ".")
 			// Careful Prefix maybe have dot.
 			after.Schema = temp[len(temp)-3]
 			after.TableName = temp[len(temp)-2]
 			after.Prefix = strings.Join(temp[:len(temp)-3], ".")
-			after.Col = map[string]string{}
+			after.ColWithKafka = map[string]string{}
+			after.ColWithDebezium = map[string]string{}
 			for _, col := range field.Fields {
-				after.Col[col.Field] = col.Type
+				after.ColWithKafka[col.Field] = col.Type
+				if col.Name != nil {
+					after.ColWithDebezium[col.Field] = *col.Name
+				} else {
+					after.ColWithDebezium[col.Field] = col.Type
+				}
 			}
 			break
 		}
