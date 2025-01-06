@@ -1,0 +1,75 @@
+serviceName: dataReplication
+cdc:
+  debezium:
+    type: debezium
+    host: localhost
+    port: 8083
+    kafka:
+      servers: localhost:9092
+      autoCommit: false
+    # can move to db
+    mappingSource:
+      - name: pgConnector
+        checkCreate: false # support check exist connector and auto create
+        schema: employees
+        prefix: employees_pg
+        mode: OneToOne # ManyToOne
+        sourceDbTable: # which is sourceDb table
+          - department
+          - department_employee
+          - employee
+          - salary
+          - title
+        combineConcurrency: # support handler many topic same concurrency. If false each topic - 1 concurrency
+          status: false
+          combine:
+            - department, department_employee
+            - salary
+            - employee, title
+        topic: # empty when 1-1 mode
+          - Combine-topic # Defined on mode ManyToOne
+        skipOperator:
+          - r # read
+#          - c # insert
+#          - u # update
+#          - d # delete
+        sourceDb: pgSourceDb # must define in sourceDb
+        destinationDb: pgDesDb # must define in sourceDb
+        destinationDbCombine:
+          combine: false # if = true push all to table. False map 1-1
+          combineMap:
+            - combineTableSrc:
+              - department
+              - department_employee
+              - employee
+              - salary
+              - title
+              combineDesTable: employees # collection - indexer - table, etc ...
+              combineDesPrimaryKey: $Schema.$Table.$Key # format key gen on destination if combine
+
+sourceDb:
+  - alias: pgSourceDb
+    type: postgres
+    host: localhost
+    port: 5432
+    username: postgres
+    password: postgres
+    db: employees
+  # oracle/mysql ....
+destinationDb:
+  - alias: pgDesDb
+    type: postgres
+    host: localhost
+    port: 5432
+    username: postgres
+    password: postgres
+    db: employees
+    poolMaxConnect: 1
+    poolMinConnect: 1
+
+#  - esDesDb:
+#      type: elasticSearch
+#  - cassandraDesDb:
+#      type: cassandra
+#  - mongoDb:
+#      type: mongodb
