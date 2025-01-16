@@ -1,6 +1,7 @@
 package model
 
 import (
+	"data-replication/internal/enum"
 	"github.com/samber/lo"
 	"strings"
 )
@@ -67,7 +68,9 @@ type Source struct {
 }
 
 // GetSchemeAfterTable Convert schema to SchemaTable
-func (m *DebeziumMessage[T]) GetSchemeAfterTable() (after SchemaTable) {
+func (m *DebeziumMessage[T]) GetSchemeAfterTable(mode enum.TimePrecisionMode) (after SchemaTable) {
+	after.TimePrecisionMode = mode
+
 	dk := m.Key
 	// get private key
 	after.PrimaryKey = lo.Map(dk.Schema.Fields, func(item Field, _ int) string {
@@ -96,6 +99,11 @@ func (m *DebeziumMessage[T]) GetSchemeAfterTable() (after SchemaTable) {
 			}
 			break
 		}
+	}
+	// handler after data
+	after.ValAfter = make(map[string]any)
+	for key, value := range *dv.Payload.After {
+		after.ValAfter[key] = value
 	}
 	return
 }

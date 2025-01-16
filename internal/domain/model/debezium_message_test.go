@@ -1,6 +1,7 @@
 package model
 
 import (
+	"data-replication/internal/enum/time_precision_mode"
 	"encoding/json"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
@@ -55,11 +56,23 @@ func TestMessage(t *testing.T) {
 			}
 		})
 
+		Convey("Test code after data", func() {
+			for k, v := range *mockDebeziumValueMessage.Payload.After {
+				fmt.Printf("%v - %v \n", k, v)
+			}
+		})
+
 		Convey("Test function", func() {
-			result := debeziumMessage.GetSchemeAfterTable()
+			result := debeziumMessage.GetSchemeAfterTable(time_precision_mode.Adaptive)
 
 			fmt.Printf("result.kafka: %v\n", result.ColWithKafka)
 			fmt.Printf("result.debezium: %v\n", result.ColWithDebezium)
+			tbPg := newPgTable(result)
+			//query := tbPg.GenQueryCreateTable()
+			//query := tbPg.GenQueryInsertInto()
+			query := tbPg.GenQueryUpdate()
+
+			fmt.Printf("query: %v\n", query)
 		})
 	})
 }

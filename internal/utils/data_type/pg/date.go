@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -20,4 +22,78 @@ In DB:  1953-09-02 => Message: -5965
 
 func ConvertDebeziumTimeDateToTime(epochDate int32) time.Time {
 	return time.Unix(0, 0).Add(time.Duration(epochDate) * 24 * time.Hour)
+}
+
+func ConvertDebeziumTimeDateToTimeFloat64(epochDate float64) time.Time {
+	temp := fmt.Sprintf("%.0f", epochDate)
+	i, _ := strconv.Atoi(temp)
+	return time.Unix(0, 0).Add(time.Duration(i) * 24 * time.Hour)
+}
+
+func GetDateOnlyYMD(t time.Time) string {
+	var m string
+	var d string
+	if t.Month() < 10 {
+		m = "0" + strconv.Itoa(int(t.Month()))
+	} else {
+		m = strconv.Itoa(int(t.Month()))
+	}
+	if t.Day() < 10 {
+		d = "0" + strconv.Itoa(t.Day())
+	} else {
+		d = strconv.Itoa(t.Day())
+	}
+
+	return fmt.Sprintf("%d-%s-%s",
+		t.Year(),
+		m,
+		d)
+}
+
+func GetDateOnlyYMDTime(t time.Time) string {
+	var m string
+	var d string
+	var h string
+	var mm string
+	var s string
+	var ns string
+
+	if t.Month() < 10 {
+		m = "0" + strconv.Itoa(int(t.Month()))
+	} else {
+		m = strconv.Itoa(int(t.Month()))
+	}
+	if t.Day() < 10 {
+		d = "0" + strconv.Itoa(t.Day())
+	} else {
+		d = strconv.Itoa(t.Day())
+	}
+	if t.Hour() < 10 {
+		h = "0" + strconv.Itoa(t.Hour())
+	} else {
+		h = strconv.Itoa(t.Hour())
+	}
+	if t.Minute() < 10 {
+		mm = "0" + strconv.Itoa(t.Minute())
+	} else {
+		mm = strconv.Itoa(t.Minute())
+	}
+	if t.Second() < 10 {
+		s = "0" + strconv.Itoa(t.Second())
+	} else {
+		s = strconv.Itoa(t.Second())
+	}
+	nsStr := strconv.Itoa(t.Nanosecond())
+	for i := 0; i < 6-len(nsStr); i++ {
+		ns += "0"
+	}
+	ns += nsStr
+	return fmt.Sprintf("%d-%s-%s %s:%s:%s.%s",
+		t.Year(),
+		m,
+		d,
+		h,
+		mm,
+		s,
+		ns)
 }

@@ -46,6 +46,7 @@ cdc:
               - title
               combineDesTable: employees # collection - indexer - table, etc ...
               combineDesPrimaryKey: $Schema.$Table.$Key # format key gen on destination if combine
+        timePrecisionMode: adaptive # adaptive_time_microseconds, connect
 
 sourceDb:
   - alias: pgSourceDb
