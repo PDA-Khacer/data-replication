@@ -119,24 +119,37 @@ func (t *TablePg) GenQueryInsertInto() (result []string) {
 	col := lo.Keys(t.ColWithKafka)
 
 	vals := lo.Map(col, func(c string, _ int) string {
+		// check field nullable
+		if t.ValAfter[c] == nil {
+			return fmt.Sprintf(`%s = null`, c)
+		}
+
 		var val string
 		switch t.ColWithKafka[c] {
-		case "int64", "int32", "int":
-			if t.ColWithDebezium[c] == string(adaptive.MicroTime) ||
-				t.ColWithDebezium[c] == string(adaptive.Time) ||
-				t.ColWithDebezium[c] == string(connect.Time) {
-				// convert to time only
-				val = fmt.Sprintf(`'%s'`, utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64)).Format("15:04:05"))
-			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) ||
-				t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) ||
-				(t.ColWithDebezium[c] == string(connect.Timestamp)) {
-				// convert to timestamp
-				val = fmt.Sprintf(`'%s'`, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
-			} else if t.ColWithDebezium[c] == string(adaptive.Date) ||
-				t.ColWithDebezium[c] == string(connect.Date) {
-				val = fmt.Sprintf(`'%s'`, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
+		case "int32":
+			if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
+				// DATE type adaptive same with connect
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Time) || t.ColWithDebezium[c] == string(connect.Time) {
+				// TIME(1), TIME(2), TIME(3) Represents the number of milliseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
 			} else {
-				val = fmt.Sprintf("%.0f", t.ValAfter[c].(float64))
+				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
+			}
+		case "int64":
+			if t.ColWithDebezium[c] == string(adaptive.MicroTime) {
+				// TIME(4), TIME(5), TIME(6) Represents the number of microseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumMircoTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
+			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) || t.ColWithDebezium[c] == string(connect.Timestamp) {
+				// TIMESTAMP(1), TIMESTAMP(2), TIMESTAMP(3) Represents the number of milliseconds since the epoch, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMilliTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) {
+				// TIMESTAMP(4), TIMESTAMP(5), TIMESTAMP(6), TIMESTAMP
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMicroTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
+			} else {
+				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
 			}
 		case "string":
 			val = fmt.Sprintf(`'%s'`, t.ValAfter[c].(string))
@@ -155,21 +168,34 @@ func (t *TablePg) GenQueryUpdate() (result []string) {
 	col := lo.Keys(t.ColWithKafka)
 	var whereCon []string
 	vals := lo.Map(col, func(c string, _ int) string {
+		// check field nullable
+		if t.ValAfter[c] == nil {
+			return fmt.Sprintf(`%s = null`, c)
+		}
+
 		var val string
 		switch t.ColWithKafka[c] {
-		case "int64", "int32", "int":
-			if t.ColWithDebezium[c] == string(adaptive.MicroTime) ||
-				t.ColWithDebezium[c] == string(adaptive.Time) ||
-				t.ColWithDebezium[c] == string(connect.Time) {
-				// convert to time only
-				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64)).Format("15:04:05"))
-			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) ||
-				t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) ||
-				(t.ColWithDebezium[c] == string(connect.Timestamp)) {
-				// convert to timestamp
-				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
-			} else if t.ColWithDebezium[c] == string(adaptive.Date) ||
-				t.ColWithDebezium[c] == string(connect.Date) {
+		case "int32":
+			if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
+				// DATE type adaptive same with connect
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Time) || t.ColWithDebezium[c] == string(connect.Time) {
+				// TIME(1), TIME(2), TIME(3) Represents the number of milliseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
+			} else {
+				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
+			}
+		case "int64":
+			if t.ColWithDebezium[c] == string(adaptive.MicroTime) {
+				// TIME(4), TIME(5), TIME(6) Represents the number of microseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumMircoTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
+			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) || t.ColWithDebezium[c] == string(connect.Timestamp) {
+				// TIMESTAMP(1), TIMESTAMP(2), TIMESTAMP(3) Represents the number of milliseconds since the epoch, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMilliTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) {
+				// TIMESTAMP(4), TIMESTAMP(5), TIMESTAMP(6), TIMESTAMP
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMicroTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
 				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
 			} else {
 				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
@@ -200,21 +226,34 @@ func (t *TablePg) GenQueryUpdateWithUpdateAt() (result []string) {
 	col := lo.Keys(t.ColWithKafka)
 	var whereCon []string
 	vals := lo.Map(col, func(c string, _ int) string {
+		// check field nullable
+		if t.ValAfter[c] == nil {
+			return fmt.Sprintf(`%s = null`, c)
+		}
+
 		var val string
 		switch t.ColWithKafka[c] {
-		case "int64", "int32", "int":
-			if t.ColWithDebezium[c] == string(adaptive.MicroTime) ||
-				t.ColWithDebezium[c] == string(adaptive.Time) ||
-				t.ColWithDebezium[c] == string(connect.Time) {
-				// convert to time only
-				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64)).Format("15:04:05"))
-			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) ||
-				t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) ||
-				(t.ColWithDebezium[c] == string(connect.Timestamp)) {
-				// convert to timestamp
-				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
-			} else if t.ColWithDebezium[c] == string(adaptive.Date) ||
-				t.ColWithDebezium[c] == string(connect.Date) {
+		case "int32":
+			if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
+				// DATE type adaptive same with connect
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Time) || t.ColWithDebezium[c] == string(connect.Time) {
+				// TIME(1), TIME(2), TIME(3) Represents the number of milliseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
+			} else {
+				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
+			}
+		case "int64":
+			if t.ColWithDebezium[c] == string(adaptive.MicroTime) {
+				// TIME(4), TIME(5), TIME(6) Represents the number of microseconds past midnight, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.ConvertDebeziumMircoTimeToTime(t.ValAfter[c].(float64)).Format("15:04:05"))
+			} else if t.ColWithDebezium[c] == string(adaptive.Timestamp) || t.ColWithDebezium[c] == string(connect.Timestamp) {
+				// TIMESTAMP(1), TIMESTAMP(2), TIMESTAMP(3) Represents the number of milliseconds since the epoch, and does not include timezone information.
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMilliTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.MicroTimestamp) {
+				// TIMESTAMP(4), TIMESTAMP(5), TIMESTAMP(6), TIMESTAMP
+				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMDTime(utils.ConvertDebeziumMicroTimestampToTime(t.ValAfter[c].(float64))))
+			} else if t.ColWithDebezium[c] == string(adaptive.Date) || t.ColWithDebezium[c] == string(connect.Date) {
 				val = fmt.Sprintf(`%s = '%s'`, c, utils.GetDateOnlyYMD(utils.ConvertDebeziumTimeDateToTimeFloat64(t.ValAfter[c].(float64))))
 			} else {
 				val = fmt.Sprintf("%s = %.0f", c, t.ValAfter[c].(float64))
@@ -232,7 +271,6 @@ func (t *TablePg) GenQueryUpdateWithUpdateAt() (result []string) {
 		}
 		if c == constants.UpdatedAtField {
 			whereCon = append(whereCon, strings.ReplaceAll(val, "=", "<="))
-			return ""
 		}
 		return val
 	})

@@ -21,13 +21,29 @@ In DB:  1953-09-02 => Message: -5965
 */
 
 func ConvertDebeziumTimeDateToTime(epochDate int32) time.Time {
-	return time.Unix(0, 0).Add(time.Duration(epochDate) * 24 * time.Hour)
+	return time.Unix(0, 0).Add(time.Duration(epochDate) * 24 * time.Hour).UTC()
 }
 
 func ConvertDebeziumTimeDateToTimeFloat64(epochDate float64) time.Time {
 	temp := fmt.Sprintf("%.0f", epochDate)
 	i, _ := strconv.Atoi(temp)
-	return time.Unix(0, 0).Add(time.Duration(i) * 24 * time.Hour)
+	return time.Unix(0, 0).Add(time.Duration(i) * 24 * time.Hour).UTC()
+}
+
+func ConvertDebeziumMicroTimestampToTime(t float64) time.Time {
+	return time.UnixMicro(int64(t)).UTC()
+}
+
+func ConvertDebeziumMilliTimestampToTime(t float64) time.Time {
+	return time.UnixMilli(int64(t)).UTC()
+}
+
+func ConvertDebeziumMircoTimeToTime(t float64) time.Time {
+	return time.Unix(0, 0).Add(time.Duration(t) * time.Microsecond).UTC()
+}
+
+func ConvertDebeziumTimeToTime(t float64) time.Time {
+	return time.Unix(0, 0).Add(time.Duration(t) * time.Millisecond).UTC()
 }
 
 func GetDateOnlyYMD(t time.Time) string {
