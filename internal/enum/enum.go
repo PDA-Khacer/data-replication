@@ -14,3 +14,5 @@ type DebeziumDataTypeDecimalPrecise string
 
 //type DebeziumDataTypeDecimalDouble string  // all is FLOAT64
 //type DebeziumDataTypeDecimalString string  // all is String
+
+type OperatorSQL string

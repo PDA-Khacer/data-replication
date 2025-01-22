@@ -6,14 +6,14 @@ import (
 	"strings"
 )
 
-type DebeziumMessage[T any] struct {
+type DebeziumMessage struct {
 	Key   DebeziumKey
-	Value DebeziumValue[T]
+	Value DebeziumValue
 }
 
 type DebeziumKey struct {
-	Schema  Schema       `json:"schema"`
-	Payload Payload[any] `json:"payload"`
+	Schema  Schema         `json:"schema"`
+	Payload map[string]any `json:"payload"`
 }
 
 type Schema struct {
@@ -25,16 +25,16 @@ type Schema struct {
 	Version    *int                   `json:"version"`
 }
 
-type Payload[T any] struct {
-	Id          any           `json:"id"`
-	Before      *map[string]T `json:"before"`
-	After       *map[string]T `json:"after"`
-	Source      Source        `json:"source"`
-	Transaction any           `json:"transaction"`
-	Op          string        `json:"op"`
-	TsMs        int64         `json:"ts_ms"`
-	TsUs        int64         `json:"ts_us"`
-	TsNs        int64         `json:"ts_ns"`
+type Payload struct {
+	Id          any             `json:"id"`
+	Before      *map[string]any `json:"before"`
+	After       *map[string]any `json:"after"`
+	Source      Source          `json:"source"`
+	Transaction any             `json:"transaction"`
+	Op          string          `json:"op"`
+	TsMs        int64           `json:"ts_ms"`
+	TsUs        int64           `json:"ts_us"`
+	TsNs        int64           `json:"ts_ns"`
 }
 
 type Field struct {
@@ -46,9 +46,9 @@ type Field struct {
 	Fields []Field `json:"fields"`
 }
 
-type DebeziumValue[T any] struct {
-	Schema  Schema     `json:"schema"`
-	Payload Payload[T] `json:"payload"`
+type DebeziumValue struct {
+	Schema  Schema  `json:"schema"`
+	Payload Payload `json:"payload"`
 }
 
 type Source struct {
@@ -68,13 +68,18 @@ type Source struct {
 }
 
 // GetSchemeAfterTable Convert schema to SchemaTable
-func (m *DebeziumMessage[T]) GetSchemeAfterTable(mode enum.TimePrecisionMode) (after SchemaTable) {
+func (m *DebeziumMessage) GetSchemeAfterTable(mode enum.TimePrecisionMode) (after SchemaTable) {
 	after.TimePrecisionMode = mode
 
 	dk := m.Key
 	// get private key
 	after.PrimaryKey = lo.Map(dk.Schema.Fields, func(item Field, _ int) string {
 		return item.Field
+	})
+
+	after.ValPrimaryKey = make(map[string]any)
+	after.ValPrimaryKey = lo.Associate(dk.Schema.Fields, func(item Field) (string, any) {
+		return item.Field, dk.Payload[item.Field]
 	})
 
 	dv := m.Value
@@ -100,10 +105,19 @@ func (m *DebeziumMessage[T]) GetSchemeAfterTable(mode enum.TimePrecisionMode) (a
 			break
 		}
 	}
-	// handler after data
+	// handler after data & before data
 	after.ValAfter = make(map[string]any)
-	for key, value := range *dv.Payload.After {
-		after.ValAfter[key] = value
+	if dv.Payload.After != nil {
+		for key, value := range *dv.Payload.After {
+			after.ValAfter[key] = value
+		}
+	}
+	// TODO add option on config
+	after.ValBefore = make(map[string]any)
+	if dv.Payload.Before != nil {
+		for key, value := range *dv.Payload.Before {
+			after.ValBefore[key] = value
+		}
 	}
 	return
 }
