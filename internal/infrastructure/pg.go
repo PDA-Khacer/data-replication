@@ -3,18 +3,16 @@ package infrastructure
 import (
 	"context"
 	"data-replication/config"
+	"data-replication/internal/adapter"
 	"data-replication/internal/logger"
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"gorm.io/gorm"
 )
 
-var PgGorm *gorm.DB
-
-var PgPool map[string]*pgxpool.Pool
+var PgPool map[string]adapter.PgPoolAdapter
 
 func init() {
-	PgPool = make(map[string]*pgxpool.Pool)
+	PgPool = make(map[string]adapter.PgPoolAdapter)
 }
 
 func AddOrReplacePgPool(key string, config config.DbConfig, ctx context.Context) error {
@@ -34,11 +32,11 @@ func AddOrReplacePgPool(key string, config config.DbConfig, ctx context.Context)
 		return err
 	}
 
-	PgPool[key] = pool
+	PgPool[key] = *adapter.NewPgPoolAdapter(pool)
 	return nil
 }
 
-func GetPgPool(key string) *pgxpool.Pool {
+func GetPgPool(key string) adapter.PgPoolAdapter {
 	return PgPool[key]
 }
 

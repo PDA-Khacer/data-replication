@@ -1,4 +1,4 @@
-package infrastructure
+package adapter
 
 import (
 	"data-replication/internal/domain/model"
@@ -30,7 +30,7 @@ func TestIntegrationTestConsumer(t *testing.T) {
 			"employees_pg.employees.employee"}, func(message *kafka.Message) error {
 			recordKey := message.Key
 			recordValue := message.Value
-			dataMap := model.DebeziumValue[any]{}
+			dataMap := model.DebeziumValue{}
 			err := json.Unmarshal(recordValue, &dataMap)
 			if err != nil {
 				panic(err)

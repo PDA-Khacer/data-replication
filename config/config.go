@@ -30,11 +30,11 @@ type Cdc struct {
 
 // Debezium Capture data change framework
 type Debezium struct {
-	Type             string          `mapstructure:"type" validate:"required"`
-	Host             string          `mapstructure:"host" validate:"required"`
-	Port             int             `mapstructure:"port" validate:"required"`
-	Kafka            Kafka           `mapstructure:"kafka" validate:"required"`
-	MappingSourceMap []MappingSource `mapstructure:"mappingSource" validate:"required"`
+	Type             string           `mapstructure:"type" validate:"required"`
+	Host             string           `mapstructure:"host" validate:"required"`
+	Port             int              `mapstructure:"port" validate:"required"`
+	Kafka            Kafka            `mapstructure:"kafka" validate:"required"`
+	MappingSourceMap []*MappingSource `mapstructure:"mappingSource" validate:"required"`
 }
 
 // Kafka which debezium send data to
@@ -45,12 +45,13 @@ type Kafka struct {
 
 // MappingSource detail of connector
 type MappingSource struct {
-	Name          string   `mapstructure:"name" validate:"required"`
-	CheckCreate   bool     `mapstructure:"checkCreate"`
-	Schema        string   `mapstructure:"schema" validate:"required"`
-	Prefix        string   `mapstructure:"prefix" validate:"required"`
-	Mode          string   `mapstructure:"mode" validate:"required"`
-	SourceDbTable []string `mapstructure:"sourceDbTable" validate:"required"`
+	Name                    string   `mapstructure:"name" validate:"required"`
+	CheckCreate             bool     `mapstructure:"checkCreate"`
+	Schema                  string   `mapstructure:"schema" validate:"required"`
+	Prefix                  string   `mapstructure:"prefix" validate:"required"`
+	Mode                    string   `mapstructure:"mode" validate:"required"`
+	IsFetchingSourceDbTable bool     `mapstructure:"isFetchingSourceDbTable" validate:"required"`
+	SourceDbTable           []string `mapstructure:"sourceDbTable" validate:"required"`
 	// CombineConcurrency null = false
 	CombineConcurrency   *CombineConcurrency   `mapstructure:"combineConcurrency"`
 	Topic                *[]string             `mapstructure:"topic"`
@@ -60,9 +61,19 @@ type MappingSource struct {
 	DestinationDbCombine *DestinationDbCombine `mapstructure:"destinationDbCombine" validate:"required"`
 }
 
-// CombineConcurrency support handler many topic same concurrency
+/*
+CombineConcurrency support handler many topic same concurrency
+
+Example: Have 3 table: T1, T2, T3 (T1 and T2 have only 5 events update per sec,
+but T3 has 100 events per sec).
+
+T1, T2 have combine to 1 Group kafka (split traffic).
+
+T3 a Group immediately read and handler.
+*/
 type CombineConcurrency struct {
-	Status  bool     `mapstructure:"status"`
+	Status bool `mapstructure:"status"`
+	// Combine table need separator by comma
 	Combine []string `mapstructure:"combine" validate:"required"`
 }
 

@@ -6,7 +6,7 @@ cdc:
     port: 8083
     kafka:
       servers: localhost:9092
-      autoCommit: false
+      autoCommit: true
     # can move to db
     mappingSource:
       - name: pgConnector
@@ -14,6 +14,7 @@ cdc:
         schema: employees
         prefix: employees_pg
         mode: OneToOne # ManyToOne
+        isFetchingSourceDbTable : true
         sourceDbTable: # which is sourceDb table
           - department
           - department_employee
@@ -21,7 +22,7 @@ cdc:
           - salary
           - title
         combineConcurrency: # support handler many topic same concurrency. If false each topic - 1 concurrency
-          status: false
+          status: falsee
           combine:
             - department, department_employee
             - salary

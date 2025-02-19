@@ -83,6 +83,7 @@ func (m *DebeziumMessage) GetSchemeAfterTable(mode enum.TimePrecisionMode) (afte
 	})
 
 	dv := m.Value
+	after.Operator = dv.Payload.Op
 	for _, field := range dv.Schema.Fields {
 		// get only after field
 		if field.Field == "after" && field.Name != nil {

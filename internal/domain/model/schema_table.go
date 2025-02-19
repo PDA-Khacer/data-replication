@@ -36,6 +36,7 @@ type SchemaTable struct {
 	PrimaryKey        []string
 	ValPrimaryKey     map[string]any
 	TimePrecisionMode enum.TimePrecisionMode
+	Operator          string
 }
 
 func (st *SchemaTable) MappingValueToCorrectType(key string, values any, op enum.OperatorSQL) string {
